@@ -11,7 +11,7 @@ function App() {
   const [logs, setLogs] = useState([] as string[]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLLIElement>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -68,7 +68,7 @@ function App() {
     log(`NFT: ${JSON.stringify(tx, null, 2)}`);
 
     const nfts = await client.request({
-      method: "account_nfts",
+      command: "account_nfts",
       account: sourceWallet.classicAddress
     });
     log(`NFTs: ${JSON.stringify(nfts, null, 2)}`);
