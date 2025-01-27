@@ -11,7 +11,8 @@ function App() {
   const [logs, setLogs] = useState([] as string[]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const messagesEndRef = useRef<HTMLLIElement>(null)
+  const messagesEndRef = useRef<HTMLLIElement>(null);
+  const client = new xrpl.Client("wss://s.altnet.rippletest.net:51233");
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -33,9 +34,9 @@ function App() {
   const run = async () => {
     setIsModalOpen(false);
     setIsRunning(true);
+    setLogs([] as string[]);
     log("Started.");
 
-    const client = new xrpl.Client("wss://s.altnet.rippletest.net:51233");
     log("Connecting to XRPL...");
     await client.connect();
     log("Connected.");
@@ -54,6 +55,31 @@ function App() {
 
     // create nft with ipfs hash
     log("Creating NFT...");
+    const tx = await mintNft(sourceWallet, ipfsHash);
+    console.log("mint result", tx);
+
+    log("Created NFT:");
+    log(`${tx.result.meta.nftoken_id}`);
+
+    const nfts = await client.request({
+      command: "account_nfts",
+      account: sourceWallet.classicAddress
+    });
+    console.log("existingNFTs", nfts);
+
+    log("Existing NFTs:")
+    nfts.result.account_nfts.forEach((nft: xrpl.AccountNFToken) => {
+      log(`${nft.NFTokenID}`);
+    });
+
+    log("Disconnecting from XRPL...");
+    await client.disconnect();
+
+    setIsRunning(false);
+    log("Finished.");
+  }
+
+  const mintNft = async (sourceWallet: xrpl.Wallet, ipfsHash: string) => {
     const transactionBlob: xrpl.NFTokenMint = {
       TransactionType: "NFTokenMint",
       Account: sourceWallet.classicAddress,
@@ -62,23 +88,13 @@ function App() {
       TransferFee: 0,
       NFTokenTaxon: 0
     };
+
     const tx = await client.submitAndWait(transactionBlob, {
       wallet: sourceWallet,
     });
-    log(`NFT: ${JSON.stringify(tx, null, 2)}`);
+    return tx;
+  };
 
-    const nfts = await client.request({
-      command: "account_nfts",
-      account: sourceWallet.classicAddress
-    });
-    log(`NFTs: ${JSON.stringify(nfts, null, 2)}`);
-
-    log("Disconnecting from XRPL...");
-    await client.disconnect();
-
-    setIsRunning(false);
-    log("Finished.");
-  }
 
   const createIpfsHash = async (file: File) => {
     const formData = new FormData();
@@ -170,7 +186,7 @@ function App() {
           </div>
           <div className="center-panel">
             <button onClick={openModal} disabled={isRunning} >
-              {isRunning ? "Running..." : "Preview the Certificate"}
+              {isRunning ? "Running..." : "Generate Certificate"}
             </button>
           </div>
           <div className="right-panel">
@@ -200,7 +216,7 @@ function App() {
             <div className='center'>
             <button
               onClick={run}>
-              Create NFT Certificate
+              Mint NFT for Certificate
             </button>
             </div>
           </div>
